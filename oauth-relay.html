@@ -22,6 +22,11 @@
 
       worker.port.addEventListener('message', function(e) {
         console.log('[relay] Worker message received: ' + e.data);
+
+        if (e.data === 'done') {
+          window.close();
+        }
+
         for (var i in waiters) {
           if (waiters.hasOwnProperty(i) &&
               e.data.indexOf(waiters[i].state) > 0) {
@@ -31,6 +36,7 @@
               "key": waiters[i].state
             }, i);
             delete waiters[i];
+            worker.port.postMessage('done');
           }
         }
       }, false);

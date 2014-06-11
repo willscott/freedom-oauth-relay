@@ -4,7 +4,9 @@ onconnect = function(event) {
   open.push(event.ports[0]);
   event.ports[0].onmessage = function(e) {
     for (var i = 0; i < open.length; i++) {
-      open[i].postMessage(e.data);
+      if (open[i] !== e.source) {
+        open[i].postMessage(e.data);
+      }
     }
   };
 };
