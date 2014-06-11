@@ -7,6 +7,7 @@
       var waiters = {};
 
       window.addEventListener("message", function(msg) {
+        console.log('[relay] Registered waiter at ' + msg.origin);
         waiters[msg.origin] = {
           state: msg.data,
           source: msg.source
@@ -16,13 +17,15 @@
       var worker = new SharedWorker('relay.js', 'oauth');
 
       worker.onerror = function(err) {
-        console.log("[problem "+err+"]")
+        console.log('[relay] Shared worker failed: ' + err);
       };
 
       worker.port.addEventListener('message', function(e) {
+        console.log('[relay] Worker message received: ' + e.data);
         for (var i in waiters) {
           if (waiters.hasOwnProperty(i) &&
               e.data.indexOf(waiters[i].state) > 0) {
+            console.log('[relay] Worker message delivered: ' + i);
             waiters[i].source.postMessage({
               "url": e.data,
               "key": waiters[i].state
