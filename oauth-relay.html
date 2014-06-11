@@ -7,31 +7,33 @@
       var waiters = {};
 
       window.addEventListener("message", function(msg) {
-        window.localStorage.setItem(msg.data, {
-          "pending": true,
-          "origin": msg.origin
-        });
-        waiters[msg.origin] = msg.source;
+        waiters[msg.origin] = {
+          state: msg.data,
+          source: msg.source
+        };
       });
 
-      window.addEventListener("storage", function(msg) {
-        if (waiters[msg.oldValue.origin] && !msg.newValue.pending) {
-          waiters[msg.oldValue.origin].postMessage({
-            "key": msg.key,
-            "url": msg.url
-          }, msg.oldValue.origin);
-          delete waiters[msg.oldValue.origin];
-        }
-      });
+      var worker = new SharedWorker('relay.js', 'oauth');
 
-      var len = window.localStorage.length;
-      var href = window.location.href;
-      for (var i = 0; i < len; i += 1) {
-        var key = window.localStorage.key(i);
-        if (href.indexOf(window.localStorage.key(i)) > -1) {
-          window.localStorage.removeItem(key);
+      worker.onerror = function(err) {
+        console.log("[problem "+err+"]")
+      };
+
+      worker.port.addEventListener('message', function(e) {
+        for (var i in waiters) {
+          if (waiters.hasOwnProperty(i) &&
+              e.data.indexOf(waiters[i].state) > 0) {
+            waiters[i].source.postMessage({
+              "url": e.data,
+              "key": waiters[i].state
+            }, i);
+            delete waiters[i];
+          }
         }
-      }
+      }, false);
+
+      worker.port.start();
+      worker.port.postMessage(window.location.href);
     </script>
   </head>
   <body>
